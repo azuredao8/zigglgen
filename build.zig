@@ -29,9 +29,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = generate_everything: {
                 const r = b.addRunArtifact(zigglgen_exe);
                 r.addArgs(&.{ "gl-4.6-core", "ZIGGLGEN_everything" });
-                const output = r.captureStdOut();
-                r.captured_stdout.?.basename = "gl.zig";
-                break :generate_everything output;
+                break :generate_everything captureStdOutAsGlDotZig(r);
             },
             .target = target,
             .optimize = optimize,
@@ -67,7 +65,16 @@ pub fn generateBindingsSourceFile(b: *std.Build, options: GeneratorOptions) std.
     for (options.extensions) |extension| {
         run_zigglgen.addArg(@tagName(extension));
     }
-    const output = run_zigglgen.captureStdOut();
-    run_zigglgen.captured_stdout.?.basename = "gl.zig";
-    return output;
+    return captureStdOutAsGlDotZig(run_zigglgen);
+}
+
+// TODO: Remove after 0.16
+fn captureStdOutAsGlDotZig(r: *std.Build.Step.Run) std.Build.LazyPath {
+    if (@typeInfo(@TypeOf(std.Build.Step.Run.captureStdOut)).@"fn".params.len == 1) {
+        const output = r.captureStdOut();
+        r.captured_stdout.?.basename = "gl.zig";
+        return output;
+    } else {
+        return r.captureStdOut(.{ .basename = "gl.zig" });
+    }
 }
